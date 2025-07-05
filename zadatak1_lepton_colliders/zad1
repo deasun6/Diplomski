@@ -1,3 +1,57 @@
-XSDHGXSJHBĆ
-	
+import math
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+
+# uzela sam vrijednosti iz tablice 2 iz dokumenta
+
+m_z = 91.188                # masa Z bozona u GeV
+width_z = 2.4414            # sirina Z bozona u GeV
+alpha_qed = 1/132.507       # em konstanta
+fermi = 1.16639e-5          # fermi konstanta
+sin2_theta_w = 0.222246     # kvadrat sinusa weinbergovog kuta
+pb_conv = 3.894e8           # GeV^-2 u pb
+
+energy_cm = 90
+s_hat = energy_cm**2
+
+def diff_cross_section(cos_theta):
+    vector_coupling = -0.5+2*sin2_theta_w   # vec i axial uzela iz tablice 1 u dokumentu, jos Q=-1 i to sam odma uvrstila u formule iz dok
+    axial_coupling = -0.5
+
+    k_factor = math.sqrt(2)*fermi*m_z**2/(4*math.pi*alpha_qed)
+    chi_1 = k_factor*s_hat*(s_hat-m_z**2)/((s_hat-m_z**2)**2+(width_z**2)*m_z**2)
+    chi_2 = k_factor**2*s_hat**2/((s_hat-m_z**2)**2+(width_z**2)*m_z**2)
+    A_0 = 1+2*vector_coupling**2*chi_1+(axial_coupling**2+vector_coupling**2)**2*chi_2
+    A_1 = 4*axial_coupling**2*chi_1+8*axial_coupling**2*vector_coupling**2*chi_2
+
+    const = 2*math.pi*alpha_qed**2/(4*s_hat)
+
+    return const*(A_0*(1+cos_theta**2)+A_1*cos_theta) 
+    
+
+
+# MC integr 
+num_points = 1000000
+cos_theta_range = 2.0  # [-1,1]
+random.seed(42) 
+
+total_weight = 0.0
+total_weight_sq = 0.0
+
+print("integracija")   # samo da mi je lakse pratit terminal
+
+for _ in range(num_points):
+    cos_th = -1+random.random()*cos_theta_range  # daje broj između 0 i 1, pa ga vracanb da bude u intervalu za cos 
+    weight = diff_cross_section(cos_th)*cos_theta_range
+    total_weight += weight
+    total_weight_sq += weight**2
+
+cross_section_avg = total_weight/num_points
+variance = total_weight_sq/num_points-cross_section_avg**2
+error_mc = math.sqrt(variance/num_points)
+
+print(f"Ukupni pop presjek: {cross_section_avg*pb_conv:.3f} +/- {error_mc*pb_conv:.3f} pb")
+
+
 
