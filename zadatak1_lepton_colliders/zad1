@@ -38,6 +38,8 @@ random.seed(42)
 
 total_weight = 0.0
 total_weight_sq = 0.0
+max_weight = 0.0
+max_cos_theta = -2.0         
 
 print("integracija")   # samo da mi je lakse pratit terminal
 
@@ -47,11 +49,92 @@ for _ in range(num_points):
     total_weight += weight
     total_weight_sq += weight**2
 
+    if weight > max_weight:
+        max_weight = weight
+        max_cos_theta = cos_th
+
+
 cross_section_avg = total_weight/num_points
 variance = total_weight_sq/num_points-cross_section_avg**2
 error_mc = math.sqrt(variance/num_points)
 
-print(f"Ukupni pop presjek: {cross_section_avg*pb_conv:.3f} +/- {error_mc*pb_conv:.3f} pb")
+#ipak cu stavit na dvije decimale jer je u zadatku tako 
 
+print(f"Ukupni pop presjek: {cross_section_avg*pb_conv:.2f} +/- {error_mc*pb_conv:.2f} pb") 
+
+
+# analiticki presjek (provjera)
+
+vector_coupling = -0.5+2*sin2_theta_w   
+axial_coupling = -0.5
+k_factor = math.sqrt(2)*fermi*m_z**2/(4*math.pi*alpha_qed)
+chi_1 = k_factor*s_hat*(s_hat-m_z**2)/((s_hat-m_z**2)**2+(width_z**2)*m_z**2)
+chi_2 = k_factor**2*s_hat**2/((s_hat-m_z**2)**2+(width_z**2)*m_z**2)
+A_0 = 1+2*vector_coupling**2*chi_1+(axial_coupling**2+vector_coupling**2)**2*chi_2
+
+sigma_analytical = (4*math.pi*alpha_qed**2/(3*s_hat))*A_0
+
+print(f"Analiticka vrijednost presjeka: {sigma_analytical * pb_conv:.2f} pb")
+
+
+# trebaju mi kutevi, koristit cu acc/rej (dahep)
+
+N = 1000 # treba li vise
+events_generated = 0
+cos_theta_events = [] # spremat cu ovdje
+eta_events = []   # za rapiditet
+
+while events_generated < N:
+    cos_theta_cand = -1+random.random()*cos_theta_range 
+    w_cand = diff_cross_section(cos_theta_cand) 
+    acc_prob = w_cand / max_weight
+
+    if random.random() < acc_prob:
+        events_generated += 1
+        cos_theta_events.append(cos_theta_cand) 
+
+        theta_angle = math.acos(cos_theta_cand)
+        eta = -math.log(math.tan(theta_angle / 2))
+        eta_events.append(eta)
+    
+        phi_angle = random.uniform(0, 2*math.pi)     # uzmem random fi, ne treba nis vise
+        sin_theta = math.sqrt(1-cos_theta_cand**2)   # iz identiteta 1 - cos bla bla
+
+        E_mu = energy_cm / 2
+        p_mu = E_mu
+
+        #cetverovektori, drugi je kao prvi al s minusom pa cu samo iskoristit prvi za drugi definirat
+
+        mu_minus_4vec = [E_mu,
+                         p_mu * sin_theta * math.cos(phi_angle),
+                         p_mu * sin_theta * math.sin(phi_angle),
+                         p_mu * cos_theta_cand]
+
+        mu_plus_4vec = [E_mu,
+                        -mu_minus_4vec[1],
+                        -mu_minus_4vec[2],
+                        -mu_minus_4vec[3]]
+
+        print(f"Događaj {events_generated}:")
+        print(f" Mi - cetverovektor: {mu_minus_4vec}")
+        print(f" Mi + cetverovektor: {mu_plus_4vec}\n")
+
+# nez jel bas potrebno ....
+plt.hist(cos_theta_events, bins=20, color='lightblue', edgecolor='black')
+plt.xlabel(r'$\cos \theta$')
+plt.ylabel('Broj generiranih dog')
+plt.title(r'Distribucija $\cos \theta$ za proces $e^+ e^- \to \mu^+ \mu^-$')
+plt.grid(True)
+plt.savefig('cos_theta_distrib.png')
+plt.show()
+
+# histogram za rapiditet (eta)
+plt.hist(eta_events, bins=30, color='lightgreen', edgecolor='black')
+plt.xlabel(r'Rapiditet $\eta$')
+plt.ylabel('Broj generiranih događaja')
+plt.title(r'Distribucija $\eta$ za proces $e^+ e^- \to \mu^+ \mu^-$')
+plt.grid(True)
+plt.savefig('eta_distrib.png')
+plt.show()
 
 
