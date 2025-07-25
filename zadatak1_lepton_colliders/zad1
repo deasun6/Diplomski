@@ -84,6 +84,9 @@ events_generated = 0
 cos_theta_events = [] # spremat cu ovdje
 eta_events = []   # za rapiditet
 
+forward_count = 0
+backward_count = 0
+
 while events_generated < N:
     cos_theta_cand = -1+random.random()*cos_theta_range 
     w_cand = diff_cross_section(cos_theta_cand) 
@@ -96,6 +99,12 @@ while events_generated < N:
         theta_angle = math.acos(cos_theta_cand)
         eta = -math.log(math.tan(theta_angle / 2))
         eta_events.append(eta)
+
+        # Forward-backward 
+        if cos_theta_cand > 0:
+            forward_count += 1
+        else:
+            backward_count += 1
     
         phi_angle = random.uniform(0, 2*math.pi)     # uzmem random fi, ne treba nis vise
         sin_theta = math.sqrt(1-cos_theta_cand**2)   # iz identiteta 1 - cos bla bla
@@ -118,6 +127,13 @@ while events_generated < N:
         print(f"Događaj {events_generated}:")
         print(f" Mi - cetverovektor: {mu_minus_4vec}")
         print(f" Mi + cetverovektor: {mu_plus_4vec}\n")
+
+
+# racun za forw i back
+A_FB = (forward_count - backward_count) / (forward_count + backward_count)
+print(f"Forward događaji: {forward_count}")
+print(f"Backward događaji: {backward_count}")
+print(f"Forward-Backward asimetrija (A_FB): {A_FB:.4f}")
 
 # nez jel bas potrebno ....
 plt.hist(cos_theta_events, bins=20, color='lightblue', edgecolor='black')
